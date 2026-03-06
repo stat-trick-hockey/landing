@@ -14,6 +14,7 @@
     --accent2: #00b4d8;
     --line: rgba(255,255,255,0.12);
     --text-dim: rgba(232,244,248,0.5);
+    --ticker-height: 46px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,6 +25,8 @@
     font-family: 'DM Mono', monospace;
     min-height: 100vh;
     overflow-x: hidden;
+    /* reserve space at bottom for fixed ticker */
+    padding-bottom: var(--ticker-height);
   }
 
   /* Rink lines background */
@@ -32,12 +35,9 @@
     position: fixed;
     inset: 0;
     background:
-      /* center red line */
       linear-gradient(90deg, transparent 49.8%, rgba(200,16,46,0.15) 49.8%, rgba(200,16,46,0.15) 50.2%, transparent 50.2%),
-      /* blue lines */
       linear-gradient(90deg, transparent 24.8%, rgba(0,100,200,0.1) 24.8%, rgba(0,100,200,0.1) 25.2%, transparent 25.2%),
       linear-gradient(90deg, transparent 74.8%, rgba(0,100,200,0.1) 74.8%, rgba(0,100,200,0.1) 75.2%, transparent 75.2%),
-      /* ice gradient */
       radial-gradient(ellipse at 50% 30%, #0d2045 0%, #0a1628 70%);
     pointer-events: none;
     z-index: 0;
@@ -292,9 +292,165 @@
       gap: 1rem;
     }
   }
+
+  /* ─── TICKER ─────────────────────────────────────────────────── */
+
+  #ticker-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--ticker-height);
+    z-index: 100;
+    background: #000;
+    border-top: 2px solid rgba(0,180,216,0.5);
+    box-shadow: 0 -4px 32px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* subtle top glow line */
+  #ticker-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent2), var(--accent), var(--accent2), transparent);
+    opacity: 0.6;
+  }
+
+  .ticker-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 13px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .ticker-label {
+    font-size: 0.42rem;
+    letter-spacing: 0.2em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .ticker-label .live-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent2);
+    animation: livePulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .ticker-status {
+    font-size: 0.38rem;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.25);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .ticker-scroll-area {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-track {
+    display: flex;
+    width: max-content;
+    will-change: transform;
+    animation: tickerScroll linear infinite;
+    align-items: center;
+  }
+
+  @keyframes tickerScroll {
+    0%   { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
+  }
+
+  /* dot matrix chars */
+  .char {
+    display: grid;
+    grid-template-columns: repeat(5, 3px);
+    grid-template-rows: repeat(7, 3px);
+    gap: 1px;
+    margin-right: 3px;
+    flex-shrink: 0;
+  }
+
+  .dot {
+    width: 3px;
+    height: 3px;
+    background: #001a1a;
+    border-radius: 50%;
+  }
+
+  .dot.on {
+    background: var(--accent2);
+    box-shadow: 0 0 3px rgba(0,180,216,0.6);
+  }
+
+  /* separator bullet */
+  .ticker-sep {
+    display: flex;
+    align-items: center;
+    margin: 0 10px;
+    flex-shrink: 0;
+  }
+
+  .ticker-sep .dot.on {
+    background: var(--accent);
+    box-shadow: 0 0 4px rgba(200,16,46,0.7);
+  }
+
+  /* NEW badge */
+  .new-badge {
+    font-size: 0.38rem;
+    letter-spacing: 0.15em;
+    color: #000;
+    background: var(--accent2);
+    padding: 1px 4px;
+    margin-right: 6px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    flex-shrink: 0;
+    animation: badgeBlink 1s step-end infinite;
+  }
+
+  @keyframes badgeBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .ticker-item:hover .dot.on {
+    background: #fff;
+    box-shadow: 0 0 4px rgba(255,255,255,0.6);
+  }
 </style>
 </head>
 <body>
+
 <div class="container">
   <header>
     <div class="logo-tag">stat-trick-hockey</div>
@@ -355,7 +511,7 @@
       <p class="card-desc">ML-assisted daily predictions for NHL first goalscorer. Picks generated every morning with tracked accuracy and recent results.</p>
       <span class="card-link">Launch Tool</span>
     </a>
-    
+
     <a class="card" href="https://stat-trick-hockey.github.io/franchise_dna/nhl-franchise-evolution.html" target="_blank" rel="noopener">
       <div class="card-number">07 / franchise dna</div>
       <span class="card-icon">🧬</span>
@@ -363,16 +519,14 @@
       <p class="card-desc">34 years of every team's rise, collapse, and reinvention, mapped into one interactive timeline.</p>
       <span class="card-link">Launch Tool</span>
     </a>
-    
+
     <a class="card" href="https://stat-trick-hockey.github.io/nhl_historical/" target="_blank" rel="noopener">
       <div class="card-number">08 / historical analytics</div>
       <span class="card-icon">📜</span>
       <div class="card-title">NHL Historical Analytics [BETA]</div>
-      <p class="card-desc">An interactive reference tool covering 100+ years of NHL data </p>
+      <p class="card-desc">An interactive reference tool covering 100+ years of NHL data</p>
       <span class="card-link">Launch Tool</span>
     </a>
-
-    
 
     <a class="card github" href="https://github.com/stat-trick-hockey/ig_pressure/tree/main/docs/ig_pressure" target="_blank" rel="noopener">
       <span class="card-icon">🗂️</span>
@@ -382,7 +536,7 @@
       </div>
       <span class="card-link">View on GitHub</span>
     </a>
-    
+
     <a class="card github" href="https://github.com/stat-trick-hockey/weekly-recap/tree/main/output" target="_blank" rel="noopener">
       <span class="card-icon">🗂️</span>
       <div>
@@ -392,15 +546,161 @@
       <span class="card-link">View on GitHub</span>
     </a>
 
-    
-
-
-    
   </div>
 
   <footer>
     Built by <a href="https://github.com/stat-trick-hockey" target="_blank">stat-trick-hockey</a> &nbsp;·&nbsp; All tools use publicly available NHL data
   </footer>
 </div>
+
+<!-- ─── FIXED TICKER BAR ──────────────────────────────────────── -->
+<div id="ticker-bar">
+  <div class="ticker-meta">
+    <div class="ticker-label">
+      <span class="live-dot"></span>
+      SportsNet Live Feed
+    </div>
+    <div class="ticker-status" id="tickerStatus">Connecting…</div>
+  </div>
+  <div class="ticker-scroll-area">
+    <div class="ticker-track" id="tickerTrack">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 5×7 dot-matrix font ───────────────────────────────────────── */
+const FONT = {
+  "A":[14,17,31,17,17,17,0],"B":[30,17,30,17,17,30,0],"C":[14,17,16,16,17,14,0],
+  "D":[28,18,17,17,18,28,0],"E":[31,16,30,16,16,31,0],"F":[31,16,30,16,16,16,0],
+  "G":[14,17,16,23,17,14,0],"H":[17,17,31,17,17,17,0],"I":[14,4,4,4,4,14,0],
+  "J":[7,2,2,2,18,12,0],"K":[17,18,28,18,17,17,0],"L":[16,16,16,16,16,31,0],
+  "M":[17,27,21,17,17,17,0],"N":[17,25,21,19,17,17,0],"O":[14,17,17,17,17,14,0],
+  "P":[30,17,30,16,16,16,0],"Q":[14,17,17,21,18,13,0],"R":[30,17,30,18,17,17,0],
+  "S":[15,16,14,1,1,30,0],"T":[31,4,4,4,4,4,0],"U":[17,17,17,17,17,14,0],
+  "V":[17,17,17,17,10,4,0],"W":[17,17,17,21,27,17,0],"X":[17,10,4,4,10,17,0],
+  "Y":[17,10,4,4,4,4,0],"Z":[31,2,4,8,16,31,0],
+  "0":[14,19,21,25,17,14,0],"1":[4,12,4,4,4,14,0],"2":[14,17,2,4,8,31,0],
+  "3":[31,2,4,2,17,14,0],"4":[2,6,10,18,31,2,0],"5":[31,16,30,1,17,14,0],
+  "6":[6,8,16,30,17,14,0],"7":[31,1,2,4,8,8,0],"8":[14,17,14,17,17,14,0],
+  "9":[14,17,17,15,1,14,0]," ":[0,0,0,0,0,0,0],".":[0,0,0,0,4,0,0],
+  ",":[0,0,0,4,4,8,0],"●":[0,4,14,14,4,0,0],"'":[4,4,0,0,0,0,0],
+  '"':[10,10,0,0,0,0,0],"!":[4,4,4,4,0,4,0],"?":[14,17,2,4,0,4,0],
+  "&":[12,18,12,20,18,12,0],"(":[2,4,4,4,4,2,0],")":[8,4,4,4,4,8,0],
+  "-":[0,0,14,0,0,0,0],"/":[1,2,4,8,16,0,0]
+};
+
+/* Build a single dot-matrix character element */
+function makeChar(ch) {
+  const el = document.createElement('div');
+  el.className = 'char';
+  const bmp = FONT[ch] || FONT[' '];
+  for (const row of bmp) {
+    for (let col = 4; col >= 0; col--) {
+      const d = document.createElement('div');
+      d.className = 'dot' + ((row >> col) & 1 ? ' on' : '');
+      el.appendChild(d);
+    }
+  }
+  return el;
+}
+
+/* Build a separator bullet */
+function makeSep() {
+  const wrap = document.createElement('div');
+  wrap.className = 'ticker-sep';
+  const bmp = FONT['●'];
+  const grid = document.createElement('div');
+  grid.className = 'char';
+  for (const row of bmp) {
+    for (let col = 4; col >= 0; col--) {
+      const d = document.createElement('div');
+      d.className = 'dot' + ((row >> col) & 1 ? ' on' : '');
+      grid.appendChild(d);
+    }
+  }
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+/* Render a full headline into a link element */
+function makeHeadlineEl(text, link, isNew) {
+  const a = document.createElement('a');
+  a.className = 'ticker-item';
+  a.href = link || '#';
+  a.target = '_blank';
+  a.rel = 'noopener';
+
+  if (isNew) {
+    const badge = document.createElement('span');
+    badge.className = 'new-badge';
+    badge.textContent = 'NEW';
+    a.appendChild(badge);
+  }
+
+  for (const ch of text.toUpperCase()) {
+    a.appendChild(makeChar(ch));
+  }
+  return a;
+}
+
+/* ── Fetch & render ────────────────────────────────────────────── */
+let prevHeadlines = new Set();
+
+async function fetchTicker() {
+  try {
+    const rss = 'https://www.sportsnet.ca/hockey/feed/';
+    const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
+    const res = await fetch(proxy + encodeURIComponent(rss));
+    const xml = await res.text();
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const items = [...doc.querySelectorAll('item')].slice(0, 15);
+
+    const track = document.getElementById('tickerTrack');
+    const frag = document.createDocumentFragment();
+    const newSet = new Set();
+
+    items.forEach(item => {
+      const headline =
+        item.querySelector('headline')?.textContent.trim() ||
+        item.querySelector('title')?.textContent.trim();
+      const link = item.querySelector('link')?.textContent.trim();
+      if (!headline) return;
+
+      const isNew = !prevHeadlines.has(headline);
+      newSet.add(headline);
+
+      frag.appendChild(makeSep());
+      frag.appendChild(makeHeadlineEl(' ' + headline + ' ', link, isNew));
+    });
+
+    prevHeadlines = newSet;
+
+    /* duplicate for seamless loop */
+    track.innerHTML = '';
+    track.appendChild(frag.cloneNode(true));
+    track.appendChild(frag);
+
+    /* set scroll duration based on content width */
+    const totalW = track.scrollWidth / 2;
+    const speed = 280; /* px/s */
+    track.style.animationDuration = (totalW / speed) + 's';
+
+    document.getElementById('tickerStatus').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  } catch (err) {
+    console.error('[Ticker error]', err);
+    document.getElementById('tickerStatus').textContent = 'Feed unavailable';
+    document.getElementById('tickerTrack').innerHTML =
+      '<span style="color:#c8102e;font-family:monospace;font-size:0.7rem;padding:0 1rem;">⚠ Unable to load feed — check console</span>';
+  }
+}
+
+fetchTicker();
+setInterval(fetchTicker, 60_000);
+</script>
+
 </body>
 </html>
