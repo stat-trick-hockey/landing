@@ -659,66 +659,65 @@ function makeHeadlineEl(text, link, isNew) {
 
 let prevHeadlines = new Set();
 
-// ── Ticker headlines: Claude AI-powered live NHL news ──────────────
-async function fetchTicker() {
-  const track = document.getElementById('tickerTrack');
-
-  // First try RSS via multiple CORS proxies
-  const rss = 'https://www.sportsnet.ca/hockey/feed/';
+async function fetchWithFallback(url) {
   const proxies = [
-    `https://api.allorigins.win/get?url=${encodeURIComponent(rss)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rss)}`,
-    `https://corsproxy.io/?${encodeURIComponent(rss)}`,
-    `https://thingproxy.freeboard.io/fetch/${rss}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
   ];
-
-  let headlines = [];
-
   for (const proxy of proxies) {
     try {
-      const res = await fetch(proxy, { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(proxy);
       if (!res.ok) continue;
-      const raw = await res.text();
-      let xmlText = raw;
-      try { const j = JSON.parse(raw); if (j.contents) xmlText = j.contents; } catch {}
-      const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
-      const items = [...doc.querySelectorAll('item')].slice(0, 15);
-      if (items.length === 0) continue;
-      headlines = items.map(item => ({
-        text: item.querySelector('title')?.textContent.trim() || '',
-        link: item.querySelector('link')?.textContent.trim() || '#',
-      })).filter(h => h.text);
-      if (headlines.length > 0) break;
+      const data = await res.text();
+      try { const j = JSON.parse(data); if (j.contents) return j.contents; } catch {}
+      return data;
     } catch {}
   }
+  throw new Error('All proxies failed');
+}
 
-  // If RSS failed, show unavailable message
-  if (headlines.length === 0) {
+async function fetchTicker() {
+  try {
+    const rss = 'https://www.sportsnet.ca/hockey/feed/';
+    const xml = await fetchWithFallback(rss);
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const items = [...doc.querySelectorAll('item')].slice(0, 15);
+
+    const track = document.getElementById('tickerTrack');
+    const frag = document.createDocumentFragment();
+    const newSet = new Set();
+
+    items.forEach(item => {
+      const headline =
+        item.querySelector('headline')?.textContent.trim() ||
+        item.querySelector('title')?.textContent.trim();
+      const link = item.querySelector('link')?.textContent.trim();
+      if (!headline) return;
+      const isNew = !prevHeadlines.has(headline);
+      newSet.add(headline);
+      frag.appendChild(makeSep());
+      frag.appendChild(makeHeadlineEl(' ' + headline + ' ', link, isNew));
+    });
+
+    prevHeadlines = newSet;
+    track.innerHTML = '';
+    track.appendChild(frag.cloneNode(true));
+    track.appendChild(frag);
+
+    const totalW = track.scrollWidth / 2;
+    const speed = 280;
+    track.style.animationDuration = (totalW / speed) + 's';
+
+    document.getElementById('tickerStatus').textContent =
+      'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  } catch (err) {
+    console.error('[Ticker error]', err);
     document.getElementById('tickerStatus').textContent = 'Feed unavailable';
-    track.innerHTML = '<span style="color:#c8102e;font-family:monospace;font-size:0.7rem;padding:0 1rem;">⚠ Unable to load feed</span>';
-    return;
+    document.getElementById('tickerTrack').innerHTML =
+      '<span style="color:#c8102e;font-family:monospace;font-size:0.7rem;padding:0 1rem;">⚠ Unable to load feed — check console</span>';
   }
-
-  const frag = document.createDocumentFragment();
-  const newSet = new Set();
-
-  headlines.forEach(({ text, link }) => {
-    const isNew = !prevHeadlines.has(text);
-    newSet.add(text);
-    frag.appendChild(makeSep());
-    frag.appendChild(makeHeadlineEl(' ' + text + ' ', link, isNew));
-  });
-
-  prevHeadlines = newSet;
-  track.innerHTML = '';
-  track.appendChild(frag.cloneNode(true));
-  track.appendChild(frag);
-
-  const totalW = track.scrollWidth / 2;
-  track.style.animationDuration = (totalW / 280) + 's';
-
-  document.getElementById('tickerStatus').textContent =
-    'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 fetchTicker();
