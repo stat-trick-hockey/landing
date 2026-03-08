@@ -659,12 +659,28 @@ function makeHeadlineEl(text, link, isNew) {
 
 let prevHeadlines = new Set();
 
+async function fetchWithFallback(url) {
+  const proxies = [
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy);
+      if (!res.ok) continue;
+      const data = await res.text();
+      try { const j = JSON.parse(data); if (j.contents) return j.contents; } catch {}
+      return data;
+    } catch {}
+  }
+  throw new Error('All proxies failed');
+}
+
 async function fetchTicker() {
   try {
     const rss = 'https://www.sportsnet.ca/hockey/feed/';
-    const proxy = 'https://api.codetabs.com/v1/proxy?quest=';
-    const res = await fetch(proxy + encodeURIComponent(rss));
-    const xml = await res.text();
+    const xml = await fetchWithFallback(rss);
     const doc = new DOMParser().parseFromString(xml, 'text/xml');
     const items = [...doc.querySelectorAll('item')].slice(0, 15);
 
