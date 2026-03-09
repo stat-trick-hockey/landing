@@ -718,13 +718,18 @@ async function fetchTicker() {
     });
 
     prevHeadlines = newSet;
+    track.style.animationPlayState = 'paused';
     track.innerHTML = '';
     track.appendChild(frag.cloneNode(true));
     track.appendChild(frag);
 
-    const totalW = track.scrollWidth / 2;
-    const speed = 280;
-    track.style.animationDuration = (totalW / speed) + 's';
+    // Wait two paint frames so the DOM has rendered before measuring scrollWidth
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const totalW = track.scrollWidth / 2;
+      const speed = 280;
+      track.style.animationDuration = (totalW / speed) + 's';
+      track.style.animationPlayState = 'running';
+    }));
 
     document.getElementById('tickerStatus').textContent =
       'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
