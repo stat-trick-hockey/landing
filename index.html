@@ -699,7 +699,7 @@ async function fetchTicker() {
     const rss = 'https://www.sportsnet.ca/hockey/feed/';
     const xml = await fetchWithFallback(rss);
     const doc = new DOMParser().parseFromString(xml, 'text/xml');
-    const items = [...doc.querySelectorAll('item')].slice(0, 15);
+    const items = [...doc.querySelectorAll('item')].slice(0, 8);
 
     const track = document.getElementById('tickerTrack');
     const frag = document.createDocumentFragment();
